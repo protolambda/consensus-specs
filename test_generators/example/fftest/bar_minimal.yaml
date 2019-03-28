@@ -1,0 +1,25 @@
+title: bar_minimal
+summary: Minimal example suite, testing bar.
+fork: v0.5.1
+config: minimal
+test_cases:
+- bar_v: 0
+  bar_spec_thing: 1024
+- bar_v: 1
+  bar_spec_thing: 1024
+- bar_v: 2
+  bar_spec_thing: 1024
+- bar_v: 3
+  bar_spec_thing: 1024
+- bar_v: 4
+  bar_spec_thing: 1024
+- bar_v: 5
+  bar_spec_thing: 1024
+- bar_v: 6
+  bar_spec_thing: 1024
+- bar_v: 7
+  bar_spec_thing: 1024
+- bar_v: 8
+  bar_spec_thing: 1024
+- bar_v: 9
+  bar_spec_thing: 1024
