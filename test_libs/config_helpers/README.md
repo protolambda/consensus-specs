@@ -11,3 +11,5 @@ from eth2spec.phase0 import spec
 my_presets = preset_loader.load_presets('main_net')
 spec.apply_constants_preset(my_presets)
 ```
+
+WARNING: this is quite hacky, it relies on import order. Overwrite constants before loading them elsewhere.
