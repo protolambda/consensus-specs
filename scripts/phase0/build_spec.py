@@ -9,6 +9,7 @@ def build_phase0_spec(sourcefile, outfile):
 from typing import (
     Any,
     Callable,
+    Dict,
     List,
     NewType,
     Tuple,
@@ -87,7 +88,7 @@ def apply_constants_preset(preset: Dict[str, Any]):
 
     # Deal with derived constants
     GENESIS_EPOCH = slot_to_epoch(GENESIS_SLOT)
-    """)
+""")
 
     with open(outfile, 'w') as out:
         out.write("\n".join(code_lines))

@@ -96,7 +96,7 @@ def generate_bar_test_cases():
         yield bar_test_case(i)
 
 
-def bar_test_suite() -> gen_typing.TestSuite:
+def bar_test_suite(configs_path: str) -> gen_typing.TestSuite:
     return gen_suite.render_suite(
         title="bar_minimal",
         summary="Minimal example suite, testing bar.",

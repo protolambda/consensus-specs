@@ -6,9 +6,13 @@ See [Constants-presets documentation](../../configs/constants_presets/README.md)
 Usage:
 
 ```python
+configs_path = 'configs/'
+
+...
+
 import preset_loader
 from eth2spec.phase0 import spec
-my_presets = preset_loader.load_presets('main_net')
+my_presets = preset_loader.load_presets(configs_path, 'main_net')
 spec.apply_constants_preset(my_presets)
 ```
 

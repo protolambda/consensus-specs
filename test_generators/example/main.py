@@ -4,7 +4,7 @@ from eth_utils import (
     to_dict, to_tuple
 )
 
-import preset_loader
+from preset_loader import loader
 from eth2spec.phase0 import spec
 
 @to_dict
@@ -16,11 +16,11 @@ def example_test_case(v: int):
 @to_tuple
 def generate_example_test_cases():
     for i in range(10):
-        yield generate_example_test_cases(i)
+        yield example_test_case(i)
 
 
-def example_minimal_suite() -> gen_typing.TestSuite:
-    minimal_presets = preset_loader.load_presets('minimal')
+def example_minimal_suite(configs_path: str) -> gen_typing.TestSuite:
+    minimal_presets = loader.load_presets(configs_path, 'minimal')
     spec.apply_constants_preset(minimal_presets)
 
     return gen_suite.render_suite(
@@ -31,8 +31,8 @@ def example_minimal_suite() -> gen_typing.TestSuite:
         test_cases=generate_example_test_cases())
 
 
-def example_mainnet_suite() -> gen_typing.TestSuite:
-    minimal_presets = preset_loader.load_presets('main_net')
+def example_mainnet_suite(configs_path: str) -> gen_typing.TestSuite:
+    minimal_presets = loader.load_presets(configs_path, 'main_net')
     spec.apply_constants_preset(minimal_presets)
 
     return gen_suite.render_suite(
