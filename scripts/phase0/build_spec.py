@@ -80,11 +80,13 @@ def hash(x):
         return ret
 
 # Access to overwrite spec constants based on configuration
-def set_constants_preset(preset: Dict[str, Any]):
+def apply_constants_preset(preset: Dict[str, Any]):
     global_vars = globals()
     for k, v in preset:
         global_vars[k] = v
 
+    # Deal with derived constants
+    GENESIS_EPOCH = slot_to_epoch(GENESIS_SLOT)
     """)
 
     with open(outfile, 'w') as out:
