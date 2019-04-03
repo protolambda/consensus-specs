@@ -78,6 +78,13 @@ def hash(x):
         ret = _hash(x)
         hash_cache[x] = ret
         return ret
+
+# Access to overwrite spec constants based on configuration
+def set_constants_preset(preset: Dict[str, Any]):
+    global_vars = globals()
+    for k, v in preset:
+        global_vars[k] = v
+
     """)
 
     with open(outfile, 'w') as out:

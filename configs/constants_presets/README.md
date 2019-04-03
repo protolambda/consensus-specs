@@ -1,6 +1,6 @@
-# Constant Presets
+# Constants Presets
 
-This directory contains a set of constant presets used for testing, test-nets, and main-net.
+This directory contains a set of constants presets used for testing, test-nets, and main-net.
 
 A preset file contains all the constants known for its target.
 Later-fork constants can be ignored, e.g. ignore phase1 constants as a client that only supports phase 0 currently.
