@@ -2,7 +2,7 @@ import sys
 import function_puller
 
 
-def build_spec(sourcefile, outfile):
+def build_phase0_spec(sourcefile, outfile):
     code_lines = []
     code_lines.append("""
     
@@ -41,7 +41,7 @@ Any = None
 Store = None
     """)
 
-    code_lines += function_puller.get_lines(sourcefile)
+    code_lines += function_puller.get_spec(sourcefile)
 
     code_lines.append("""
 # Monkey patch validator get committee code
@@ -86,5 +86,6 @@ def hash(x):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Error: spec source and outfile must defined")
-    build_spec(sys.argv[1], sys.argv[2])
+        print("Usage: <source phase0> <output phase0 pyspec>")
+    build_phase0_spec(sys.argv[1], sys.argv[2])
+

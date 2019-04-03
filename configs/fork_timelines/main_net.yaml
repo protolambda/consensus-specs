@@ -1,0 +1,11 @@
+# main-net fork timeline
+
+# Equal to GENESIS_SLOT
+phase0: 4294967296
+
+# Example 1:
+# phase0_funny_fork_name: 4295400000
+
+# Example 2:
+# Equal to PHASE_1_GENESIS_SLOT
+# phase1: 4298470000
