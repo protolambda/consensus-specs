@@ -1,0 +1,6 @@
+ruamel.yaml==0.15.87
+eth-utils==1.4.1
+../../test_libs/gen_helpers
+../../test_libs/config_helpers
+../../test_libs/pyspec
+py_ecc>=1.6.0
