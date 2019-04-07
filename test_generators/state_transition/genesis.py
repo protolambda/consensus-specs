@@ -1,5 +1,5 @@
 from eth2spec.phase0.spec import *
-from typing import List
+from typing import List, Tuple
 
 from eth2spec.utils.merkle_minimal import (
     calc_merkle_tree_from_leaves,
