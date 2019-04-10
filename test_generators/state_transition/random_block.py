@@ -42,7 +42,7 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
             if state.eth1_data_votes[possible_target].eth1_data.deposit_count >= state.latest_eth1_data.deposit_count:
                 return state.eth1_data_votes[possible_target].eth1_data
 
-        dep_count = rng.randint(0, MAX_DEPOSITS)
+        dep_count = rng.randint(0, MAX_DEPOSITS * 2)
         new_deposits = random_deposits(dep_count)
         deposit_data_leaves = [hash(deposit.data.serialize()) for deposit in (existing_deposits + new_deposits)]
         deps_root = get_merkle_root((tuple(deposit_data_leaves)))
@@ -66,7 +66,7 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
     slots = 1
     # 10% chance of having some drop-out of proposers
     if rng.randint(0, 9) == 0:
-        slots = rng.randint(1, 4)
+        slots = rng.randint(1, max(4, SLOTS_PER_EPOCH // 4))
 
     previous_block_header = deepcopy(state.latest_block_header)
     if previous_block_header.state_root == ZERO_HASH:
@@ -84,8 +84,11 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
     # create the expected amount of deposits
     #  (we can determine the count properly now that we transitioned right up to the slot)
     expected_deposits = expected_deposit_count(state)
+    total_deposits_work = state.latest_eth1_data.deposit_count - state.deposit_index
 
-    deps = random_deposits(expected_deposits)
+    # Create deposits for total work, to match the root etc.
+    # But only include the deposits that are expected (i.e. the allowed deposit count)
+    deps = random_deposits(total_deposits_work)[:expected_deposits]
 
     # TODO simulate more than just deposits
 
