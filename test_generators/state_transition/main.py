@@ -1,4 +1,3 @@
-from copy import deepcopy
 from gen_base import gen_runner, gen_suite, gen_typing
 
 from eth_utils import (
@@ -6,73 +5,71 @@ from eth_utils import (
 )
 
 from preset_loader import loader
+from eth2spec.debug.encode import encode
 from eth2spec.phase0 import spec
-from eth2spec.utils.minimal_ssz import signed_root
-from eth2spec.phase0.state_transition import state_transition
+from typing import List
 
+import deposit_helpers
 import genesis
+import random_block
 
 
 @to_dict
-def example_test_case(pre_state: spec.BeaconState):
+def sim_blocks_case(pre_state: spec.BeaconState, existing_deposits: List[spec.Deposit]):
     # copy state before changes are made
-    yield "pre", deepcopy(pre_state)
-    blocks = []
-    state = pre_state
-    for i in range(10):
-        # Prepare a new block
-        b = spec.get_empty_block()
-        b.slot = state.slot + 1
-        previous_block_header = deepcopy(state.latest_block_header)
-        if previous_block_header.state_root == spec.ZERO_HASH:
-            previous_block_header.state_root = state.hash_tree_root()
-        b.previous_block_root = signed_root(previous_block_header)
-        # Fill the block with random data
-        # TODO
+    yield "pre", encode(pre_state, spec.BeaconState)
 
+    state = pre_state
+    blocks = []
+    for i in range(spec.SLOTS_PER_EPOCH):
+        # Prepare a new block, simply use the slot number as a seed to create a new random block
+        b = random_block.apply_random_block(state=state, existing_deposits=existing_deposits, seed=state.slot)
         blocks.append(b)
-        state_transition(state, b)
-    yield "blocks", blocks
-    yield "post", state
+
+        existing_deposits.extend(b.body.deposits)
+
+    yield "blocks", [encode(b, spec.BeaconBlock) for b in blocks]
+    yield "post", encode(state, spec.BeaconState)
 
 
 @to_tuple
-def generate_example_test_cases():
+def generate_per_block_test_cases():
     validator_count = spec.SHARD_COUNT * spec.TARGET_COMMITTEE_SIZE * 10
-    dummies = genesis.create_dummies(validator_count)
-    deps = genesis.create_mock_genesis_validator_deposits(dummies)
+    validator_creds = deposit_helpers.create_validator_creds(0, validator_count)
+    deps = deposit_helpers.create_deposits(validator_creds, [])
     state = genesis.create_genesis_state(deps)
-    for i in range(20):
-        yield example_test_case(state)
+    # Create 10 test cases, extending a chain with simulated blocks from the genesis state
+    for i in range(10):
+        yield sim_blocks_case(state, deps)
 
 
-def example_minimal_suite(configs_path: str) -> gen_typing.TestSuiteOutput:
+def per_block_minimal_suite(configs_path: str) -> gen_typing.TestSuiteOutput:
     presets = loader.load_presets(configs_path, 'minimal')
     spec.apply_constants_preset(presets)
 
-    return ("mini", "core", gen_suite.render_suite(
-        title="example_minimal",
-        summary="Minimal example suite, testing bar.",
+    return ("single_block_mini", "core", gen_suite.render_suite(
+        title="single block minimal",
+        summary="Minimal configured state transition suite, testing transitions one block at a time.",
         forks_timeline="testing",
         forks=["phase0"],
         config="minimal",
         handler="core",
-        test_cases=generate_example_test_cases()))
+        test_cases=generate_per_block_test_cases()))
 
 
-def example_mainnet_suite(configs_path: str) -> gen_typing.TestSuiteOutput:
+def per_block_mainnet_suite(configs_path: str) -> gen_typing.TestSuiteOutput:
     presets = loader.load_presets(configs_path, 'mainnet')
     spec.apply_constants_preset(presets)
 
-    return ("full", "core", gen_suite.render_suite(
-        title="example_main_net",
-        summary="Main net based example suite.",
+    return ("single_block_full", "core", gen_suite.render_suite(
+        title="single block full",
+        summary="Mainnet-like configured state transition suite, testing transitions one block at a time.",
         forks_timeline= "mainnet",
         forks=["phase0"],
         config="testing",
         handler="core",
-        test_cases=generate_example_test_cases()))
+        test_cases=generate_per_block_test_cases()))
 
 
 if __name__ == "__main__":
-    gen_runner.run_generator("example", [example_minimal_suite, example_mainnet_suite])
+    gen_runner.run_generator("example", [per_block_minimal_suite])
