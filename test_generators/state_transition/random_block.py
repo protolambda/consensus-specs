@@ -4,13 +4,17 @@ from eth2spec.phase0.state_transition import state_transition_to, process_block
 from random import Random
 from copy import deepcopy
 from typing import List
+from py_ecc import bls
 
 from eth2spec.utils.merkle_minimal import get_merkle_root
 
 import deposit_helpers
 
 
-def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], seed: int) -> BeaconBlock:
+def apply_random_block(state: BeaconState,
+                       existing_deposits: List[Deposit],
+                       validator_creds: Dict[BLSPubkey, deposit_helpers.ValidatorCreds],
+                       seed: int) -> BeaconBlock:
 
     rng = Random(seed)
 
@@ -47,18 +51,58 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
         deposit_data_leaves = [hash(deposit.data.serialize()) for deposit in (existing_deposits + new_deposits)]
         deps_root = get_merkle_root((tuple(deposit_data_leaves)))
 
-        print("voting on eth1 data: %s" % deps_root.hex())
-
         return Eth1Data(
             deposit_root=deps_root,
             deposit_count=len(existing_deposits) + dep_count,
             block_hash=random_root()
         )
 
-    # def random_proposer_slashing() -> ProposerSlashing:
-    #     return ProposerSlashing(
-    #
-    #     )
+    def random_proposer_slashing(active_validators: List[int]) -> ProposerSlashing:
+        proposer_slot = state.slot - rng.randint(0, SLOTS_PER_EPOCH)
+
+        proposer_index = active_validators[rng.randint(0, len(active_validators))]
+        proposer = state.validator_registry[proposer_index]
+        proposer_creds = validator_creds[proposer.pubkey]
+        prev_block_root=get_block_root(state, proposer_slot - 1)
+
+        domain = get_domain(
+            fork=state.fork,
+            epoch=slot_to_epoch(proposer_slot),
+            domain_type=DOMAIN_BEACON_BLOCK,
+        )
+        bh1 = BeaconBlockHeader(
+            slot=proposer_slot,
+            previous_block_root=prev_block_root,
+            state_root=random_root(),
+            block_body_root=random_root(),
+            signature=EMPTY_SIGNATURE
+        )
+        # Too slow, BLS stub will accept empty signature
+        # bh1.signature = bls.sign(
+        #     privkey=proposer_creds[0][1],
+        #     message_hash=signed_root(bh1),
+        #     domain=domain
+        # )
+
+        bh2 = BeaconBlockHeader(
+            slot=proposer_slot,
+            previous_block_root=prev_block_root,
+            state_root=random_root(),
+            block_body_root=random_root(),
+            signature=EMPTY_SIGNATURE
+        )
+        # Too slow, BLS stub will accept empty signature
+        # bh2.signature = bls.sign(
+        #     privkey=proposer_creds[0][1],
+        #     message_hash=signed_root(bh2),
+        #     domain=domain
+        # )
+
+        return ProposerSlashing(
+            proposer_index=proposer_index,
+            header_1=bh1,
+            header_2=bh2,
+        )
 
     # Note: simulation is not so pessimistic here. If there are more slots skipped,
     # then we do not reach 50% of proposers to even vote in an eth1 voting period, and cannot on-board new validators...
@@ -78,8 +122,24 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
 
     target_slot = state.slot + slots
 
+    proposer = None
     # Make the transition of the state, right up to the block itself
-    state_transition_to(state, target_slot)
+    for i in range(len(state.validator_registry)):
+        state_transition_to(state, target_slot)
+
+        proposer_index = get_beacon_proposer_index(state, target_slot)
+        proposer = state.validator_registry[proposer_index]
+        if not proposer.slashed:
+            break
+        # Try next slot
+        target_slot += 1
+
+    if proposer.slashed:
+        # Cannot find a proposer, the chain is dead.
+        return None
+
+    current_epoch = get_current_epoch(state)
+    active_validators = get_active_validator_indices(state.validator_registry, current_epoch)
 
     # create the expected amount of deposits
     #  (we can determine the count properly now that we transitioned right up to the slot)
@@ -90,7 +150,13 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
     # But only include the deposits that are expected (i.e. the allowed deposit count)
     deps = random_deposits(total_deposits_work)[:expected_deposits]
 
-    # TODO simulate more than just deposits
+    proposer_slashings = []
+    if rng.randint(0, 9) == 0:
+        proposer_slashings.extend(
+            [random_proposer_slashing(active_validators) for _ in
+             range(rng.randint(0, min(MAX_PROPOSER_SLASHINGS, 3)))])
+
+    # TODO: future for 0.6.x: attester slashings, attestations, exits, transfers
 
     block = BeaconBlock(
         slot=target_slot,
@@ -99,7 +165,7 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
         body=BeaconBlockBody(
             randao_reveal=randao_reveal,
             eth1_data=eth1_data,
-            proposer_slashings=[],
+            proposer_slashings=proposer_slashings,
             attester_slashings=[],
             attestations=[],
             deposits=deps,
@@ -108,6 +174,20 @@ def apply_random_block(state: BeaconState, existing_deposits: List[Deposit], see
         ),
         signature=EMPTY_SIGNATURE,
     )
+
+    # We are not signing blocks, too slow for test generation. BLS stub will just accept it
+    #
+    # domain = get_domain(
+    #     fork=state.fork,
+    #     epoch=current_epoch,
+    #     domain_type=DOMAIN_BEACON_BLOCK,
+    # )
+
+    # block.signature = bls.sign(
+    #     privkey=validator_creds[proposer.pubkey][0][1],
+    #     message_hash=signed_root(block),
+    #     domain=domain
+    # )
 
     process_block(state, block)
 

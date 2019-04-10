@@ -6,7 +6,7 @@ from eth2spec.utils.merkle_minimal import (
 )
 
 
-def create_genesis_state(deposits: List[Deposit]) -> Tuple[BeaconState, List[Deposit]]:
+def create_genesis_state(deposits: List[Deposit]) -> BeaconState:
     deposit_root = get_merkle_root((tuple([hash(dep.data.serialize()) for dep in deposits])))
 
     return get_genesis_beacon_state(
